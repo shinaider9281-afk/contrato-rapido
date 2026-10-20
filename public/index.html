@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contrato Rapido - R$9,99</title>
+<style>
+body{font-family:Arial;max-width:600px;margin:20px auto;padding:20px;background:#f5f5f5}
+.card{background:white;padding:25px;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,0.1)}
+input,textarea{width:100%;padding:12px;margin:8px 0;border:1px solid #ddd;border-radius:8px;box-sizing:border-box}
+button{width:100%;padding:15px;background:#00b894;color:white;border:none;border-radius:8px;font-size:18px;font-weight:bold;cursor:pointer}
+#pix-area{display:none;text-align:center;margin-top:20px}
+.qr{background:white;padding:20px;border-radius:8px}
+</style>
+</head>
+<body>
+<div class="card">
+<h2>Contrato Rapido - R$ 9,99</h2>
+<p>Preencha e gere seu contrato em PDF na hora</p>
+<input id="nome" placeholder="Seu nome completo">
+<input id="cpf" placeholder="Seu CPF">
+<input id="contratado" placeholder="Nome do contratado">
+<input id="servico" placeholder="Servico a ser prestado">
+<input id="valor" placeholder="Valor total R$">
+<textarea id="prazo" placeholder="Prazo e detalhes"></textarea>
+<button onclick="gerarPix()">Gerar Pix R$ 9,99 e Baixar Contrato</button>
+<div id="pix-area">
+<h3>Escaneie o Pix</h3>
+<div class="qr">
+<img id="qr-img" style="max-width:250px">
+<p id="qr-code" style="word-break:break-all;font-size:12px;background:#eee;padding:10px;border-radius:5px"></p>
+</div>
+<p>Após pagar, seu contrato será liberado</p>
+<button onclick="baixarPDF()">Já paguei - Baixar PDF</button>
+</div>
+</div>
+<script>
+let dadosContrato = {};
+async function gerarPix(){
+  dadosContrato = {
+    nome: document.getElementById('nome').value,
+    cpf: document.getElementById('cpf').value,
+    contratado: document.getElementById('contratado').value,
+    servico: document.getElementById('servico').value,
+    valor: document.getElementById('valor').value,
+    prazo: document.getElementById('prazo').value
+  };
+  if(!dadosContrato.nome || !dadosContrato.servico){alert('Preencha pelo menos nome e servico');return;}
+  const btn = document.querySelector('button');
+  btn.textContent = 'Gerando Pix...';
+  try{
+    const res = await fetch('/criar-pagamento',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({})});
+    const data = await res.json();
+    document.getElementById('qr-code').textContent = data.qr_code;
+    document.getElementById('qr-img').src = 'data:image/png;base64,' + data.qr_code_base64;
+    document.getElementById('pix-area').style.display='block';
+    btn.textContent='Pix Gerado - Escaneie acima';
+    window.scrollTo(0,document.body.scrollHeight);
+  }catch(e){alert('Erro ao gerar Pix');btn.textContent='Gerar Pix R$ 9,99 e Baixar Contrato';}
+}
+function baixarPDF(){
+  const {nome, cpf, contratado, servico, valor, prazo} = dadosContrato;
+  const conteudo = `CONTRATO DE PRESTACAO DE SERVICOS
+
+CONTRATANTE: ${nome} - CPF: ${cpf}
+CONTRATADO: ${contratado}
+
+OBJETO: ${servico}
+VALOR: R$ ${valor}
+PRAZO/DETALHES: ${prazo}
+
+Clausulas padrao de prestacao de servicos...
+
+Data: ${new Date().toLocaleDateString('pt-BR')}
+Assinatura: _________________________________`;
+  const blob = new Blob([conteudo],{type:'text/plain'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href=url;a.download=`contrato-${nome}.txt`;a.click();
+}
+</script>
+</body>
+</html>
